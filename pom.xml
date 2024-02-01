@@ -6,13 +6,13 @@
 
 	<groupId>ai.crypto</groupId>
 	<artifactId>security</artifactId>
-	<version>0.0.1-RELEASE</version>
+	<version>0.0.1-SNAPSHOT</version>
 	<name>security</name>
 	<description>Crypto-Library</description>
 	
 	<distributionManagement>
 		<repository>
-			<id>github</id>
+			<id>Crypto-Library</id>
 			<url>https://maven.pkg.github.com/yashrockstar/Crypto-Library</url>
 		</repository>
 	</distributionManagement>
