@@ -6,7 +6,7 @@
 
 	<groupId>ai.crypto</groupId>
 	<artifactId>security</artifactId>
-	<version>0.0.2-SNAPSHOT</version>
+	<version>0.0.3-SNAPSHOT</version>
 	<name>security</name>
 	<description>Crypto-Library</description>
 	
