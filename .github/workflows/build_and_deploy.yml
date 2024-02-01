@@ -113,6 +113,7 @@ jobs:
       # Use the calculated new version in the script
       - name: Update Version
         run: |
+          echo "Token: ${{ secrets.BUILD_TOKEN }}"
           echo "${{ steps.calculate_version.outputs.REPO_NEW_VERSION }}"
 
           # Define the path to your POM file
