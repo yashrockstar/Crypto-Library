@@ -11,8 +11,8 @@ Welcome to the `Crypto Security Lib` repository! This library provides encryptio
 ### CryptographicAlgos
 Supported cryptographic algorithms.
 
-1. `AES` : Advanced Encryption Standard.
-2. `RSA` : Rivest–Shamir–Adleman.
+1. `AES` : Advanced Encryption Standard .
+2. `RSA` : Rivest–Shamir–Adleman .
 
 ### AESModePadding
 Supported modes and paddings for the AES algorithm.
