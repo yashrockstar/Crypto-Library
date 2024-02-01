@@ -7,6 +7,24 @@
       <id>github</id>
       <username>${env.GIT_USERNAME}</username>
       <password>${env.GIT_TOKEN}</password>
+      <configuration>
+        <basicAuthScope>
+          <host>https://maven.pkg.github.com</host>
+          <port>443</port>
+          <protocol>https</protocol>
+          <realm>OSSRH</realm>
+        </basicAuthScope>
+        <httpConfiguration>
+          <all>
+            <params>
+              <property>
+                <name>http.protocol.allow-circular-redirects</name>
+                <value>%b,true</value>
+              </property>
+            </params>
+          </all>
+        </httpConfiguration>
+      </configuration>
     </server>
   </servers>
 </settings>

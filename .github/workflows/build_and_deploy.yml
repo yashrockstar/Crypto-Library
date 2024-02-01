@@ -200,6 +200,6 @@ jobs:
       run: mvn -B package --file pom.xml
 
     - name: Publish to GitHub Packages Apache Maven
-      run: mvn deploy -X
+      run: mvn deploy
       env:
         GITHUB_TOKEN: ${{ secrets.BUILD_TOKEN }}
