@@ -1,0 +1,207 @@
+name: Maven Package
+
+on:
+  push:
+    branches:    
+      - 'develop'       # matches every branch containing a single 'feature/'
+      - 'release'
+      - 'production'
+jobs:
+  update-snapshot:
+    runs-on: ubuntu-20.04
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v2
+      - name: Install xmlstarlet
+        run: sudo apt-get install xmlstarlet
+      - name: Set Git credentials
+        run: |
+          git config --global user.name $GIT_USERNAME
+          git config --global user.email $GIT_EMAIL
+          git config --global user.password $GIT_TOKEN
+        env:
+          GIT_USERNAME: ${{ secrets.BUILD_USER }}
+          GIT_EMAIL: ${{ secrets.BUILD_EMAIL}}
+          GIT_TOKEN: ${{ secrets.BUILD_TOKEN}}
+
+      - name: Extract branch name
+        shell: bash
+        run: echo "branch=${GITHUB_HEAD_REF:-${GITHUB_REF#refs/heads/}}" >> $GITHUB_OUTPUT
+        id: extract_branch
+
+      - name: Check Commit Message
+        id: check_commit_message
+        run: |
+          # Get the last commit message using git log
+          LAST_COMMIT_MESSAGE=$(git log -1 --pretty=%B)
+          # Check if a specific keyword is present in the commit message
+          if [[ "$LAST_COMMIT_MESSAGE" == "[skip-ci]"* ]]; then
+            echo "Commit message starts with '[skip-ci]'. Skipping workflow."
+            echo "::set-output name=skip_workflow::true"
+          else
+            echo "Commit message does not starts with '[skip-ci]'. Proceeding with workflow."
+            echo "::set-output name=skip_workflow::false"
+          fi
+      - name: Skip Workflow
+        if: steps.check_commit_message.outputs.skip_workflow == 'true'
+        run: exit 1  # This step will cause the workflow to terminate with failure
+
+      - name: Clear Maven Cache
+        run: mvn clean --batch-mode --update-snapshots
+      # Extract the current version from the POM file
+      - name: Get Current Version
+        id: get_version
+        run: |
+          if [[ "${{ steps.extract_branch.outputs.branch }}" == "release" ]]; then
+            R_CURRENT_VERSION=$(mvn help:evaluate -Dexpression=project.version -DforceStdout | grep -Eo '[0-9]+\.[0-9]+\.[0-9]+-SNAPSHOT')
+            echo "Current Version: $R_CURRENT_VERSION"
+            echo "::set-output name=R_CURRENT_VERSION::$R_CURRENT_VERSION"
+          elif [[ "${{ steps.extract_branch.outputs.branch }}" == "production" ]]; then
+            R_CURRENT_VERSION=$(xmlstarlet sel -N x="http://maven.apache.org/POM/4.0.0" -t -v "//x:project/x:version" pom.xml)
+            echo "Current Version: $R_CURRENT_VERSION"
+            echo "::set-output name=R_CURRENT_VERSION::$R_CURRENT_VERSION"
+          else
+            R_CURRENT_VERSION=$(xmlstarlet sel -N x="http://maven.apache.org/POM/4.0.0" -t -v "//x:project/x:version" pom.xml)
+            if [[ ! $R_CURRENT_VERSION == *-SNAPSHOT ]]; then
+                R_CURRENT_VERSION="${R_CURRENT_VERSION}-SNAPSHOT"
+            fi
+            echo "Current Version: $R_CURRENT_VERSION"
+            echo "::set-output name=R_CURRENT_VERSION::$R_CURRENT_VERSION"
+          fi
+        working-directory: .
+      # Calculate the new version by adding 0.0.1
+      - name: Calculate New Version
+        id: calculate_version
+        run: |
+          echo "current ver: ${{ steps.get_version.outputs.R_CURRENT_VERSION }}"
+          REPO_CURRENT_VERSION="${{ steps.get_version.outputs.R_CURRENT_VERSION }}"
+          if [[ "${{ steps.extract_branch.outputs.branch }}" == "develop" ]]; then
+            # Use regex to extract major, minor, and patch versions
+            if [[ "$REPO_CURRENT_VERSION" =~ ^([0-9]+)(\.([0-9]+)(\.([0-9]+))?)?(-SNAPSHOT)?$ ]]; then
+              MAJOR="${BASH_REMATCH[1]}"
+              MINOR="${BASH_REMATCH[3]}"
+              PATCH="${BASH_REMATCH[5]}"
+              
+              if [ -z "$MINOR" ]; then
+                # No minor version specified, assume it's 0
+                MINOR="0"
+              fi
+              
+              if [ -z "$PATCH" ]; then
+                # No patch version specified, assume it's 0
+                PATCH="0"
+              else
+                # Increment the PATCH version by 1
+                PATCH=$((PATCH + 1))
+              fi
+              REPO_NEW_VERSION="${MAJOR}.${MINOR}.${PATCH}-SNAPSHOT"
+              echo "::set-output name=REPO_NEW_VERSION::$REPO_NEW_VERSION"
+            else
+              echo "Invalid version format: $REPO_CURRENT_VERSION"
+              exit 1
+            fi
+          elif [[ "${{ steps.extract_branch.outputs.branch }}" == "release" ]]; then
+            # For release branch, switch from SNAPSHOT to RELEASE (if present)
+            REPO_NEW_VERSION=$(echo "$REPO_CURRENT_VERSION" | sed 's/-SNAPSHOT$/-RELEASE/')
+            echo "::set-output name=REPO_NEW_VERSION::$REPO_NEW_VERSION"
+          elif [[ "${{ steps.extract_branch.outputs.branch }}" == "production" ]]; then
+            # For production branch, remove -RELEASE if present (keep version as-is)
+            REPO_NEW_VERSION=$(echo "$REPO_CURRENT_VERSION" | sed 's/-RELEASE$//')
+            echo "::set-output name=REPO_NEW_VERSION::$REPO_NEW_VERSION"
+          else
+            echo "::set-output name=REPO_NEW_VERSION::$REPO_CURRENT_VERSION"
+          fi
+        working-directory: .
+      # Use the calculated new version in the script
+      - name: Update Version
+        run: |
+          echo "${{ steps.calculate_version.outputs.REPO_NEW_VERSION }}"
+
+          # Define the path to your POM file
+          POM_FILE="pom.xml"
+
+          # Define the new version provided as an argument
+          O_NEW_VERSION="${{ steps.calculate_version.outputs.REPO_NEW_VERSION }}"
+
+          # Update the POM file with the new version
+          mvn versions:set -DnewVersion=${O_NEW_VERSION} -DgenerateBackupPoms=false
+
+          UPDATED_POM_CONTENT=$(cat ${POM_FILE})
+
+          # Base64 encode the updated POM content
+          BASE64_ENCODED_CONTENT=$(echo -n "$UPDATED_POM_CONTENT" | base64)
+
+          # Step 1: Get the SHA of the latest commit on the 'develop' branch
+          SHA=$(curl -H "Authorization: token ${{ secrets.BUILD_TOKEN }}" \
+          -H "Accept: application/vnd.github.v3+json" \
+          https://api.github.com/repos/yashrockstar/crypto-security-lib/git/refs/heads/${{ steps.extract_branch.outputs.branch }} | jq -r '.object.sha')
+
+          # Step 2: Create a new blob
+          echo "{ \"content\": \"$BASE64_ENCODED_CONTENT\", \"encoding\": \"base64\" }" > temp_blob_data.json
+          BLOB_SHA=$(curl -X POST \
+            -H "Authorization: token ${{ secrets.BUILD_TOKEN }}" \
+            -H "Accept: application/vnd.github.v3+json" \
+            --data @temp_blob_data.json \
+            https://api.github.com/repos/yashrockstar/crypto-security-lib/git/blobs | jq -r '.sha')
+
+          # Step 3: Create a new tree
+          TREE_DATA="{\"base_tree\":\"$SHA\",\"tree\":[{\"path\":\"pom.xml\",\"mode\":\"100644\",\"type\":\"blob\",\"sha\":\"$BLOB_SHA\"}]}"
+          NEW_TREE_SHA=$(curl -X POST \
+            -H "Authorization: token ${{ secrets.BUILD_TOKEN }}" \
+            -H "Accept: application/vnd.github.v3+json" \
+            https://api.github.com/repos/yashrockstar/crypto-security-lib/git/trees -d "$TREE_DATA" | jq -r '.sha')
+
+          # Step 4: Create a new commit
+          NEW_COMMIT_SHA=$(curl -X POST \
+            -H "Authorization: token ${{ secrets.BUILD_TOKEN }}" \
+            -H "Accept: application/vnd.github.v3+json" \
+            https://api.github.com/repos/yashrockstar/crypto-security-lib/git/commits \
+            -d '{
+              "message": "[skip-ci] Update project version to '${O_NEW_VERSION}'",
+              "parents": ["'$SHA'"],
+              "tree": "'$NEW_TREE_SHA'"
+            }' | jq -r '.sha')
+          
+          # Step 5: Update the 'current' branch to point to the new commit
+          curl -X PATCH \
+            -H "Authorization: token ${{ secrets.BUILD_TOKEN }}" \
+            -H "Accept: application/vnd.github.v3+json" \
+            https://api.github.com/repos/yashrockstar/crypto-security-lib/git/refs/heads/${{ steps.extract_branch.outputs.branch }} \
+            -d '{
+              "sha": "'$NEW_COMMIT_SHA'",
+              "force": false
+            }'
+          echo "SNAPSHOT version updated to ${O_NEW_VERSION} and committed."
+        working-directory: .
+  build:
+    needs: update-snapshot
+    runs-on: ubuntu-20.04
+    permissions:
+      contents: read
+      packages: write
+
+    steps:
+    - uses: actions/checkout@v3
+    - name: Set up JDK 11
+      uses: actions/setup-java@v3
+      with:
+        java-version: '11'
+        distribution: 'temurin'
+        server-id: github # Value of the distributionManagement/repository/id field of the pom.xml
+     
+    - name: Extract branch name
+      shell: bash
+      run: echo "branch=${GITHUB_HEAD_REF:-${GITHUB_REF#refs/heads/}}" >> $GITHUB_OUTPUT
+      id: extract_branch
+       
+    - name: Fetch Latest Code
+      run: git pull origin ${{ steps.extract_branch.outputs.branch }}
+      working-directory: .
+ 
+    - name: Build with Maven
+      run: mvn -B package --file pom.xml
+
+    - name: Publish to GitHub Packages Apache Maven
+      run: mvn deploy
+      env:
+        GITHUB_TOKEN: ${{ secrets.BUILD_TOKEN }}

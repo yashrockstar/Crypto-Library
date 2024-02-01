@@ -1,0 +1,30 @@
+name: Build
+
+on:
+  push:
+    branches:
+      - '*'         # matches every branch that doesn't contain a '/'
+      - '*/*'       # matches every branch containing a single '/'
+      - '**'        # matches every branch
+      - '!develop'
+      - '!release'
+      - '!production'
+      - '!main'
+
+jobs:
+  build:
+    runs-on: ubuntu-20.04
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+        
+      - name: Set up environment variables
+        run: |
+          echo "GITHUB_USERNAME=${{ secrets.BUILD_USER }}" >> $GITHUB_ENV
+          echo "GITHUB_TOKEN=${{ secrets.BUILD_TOKEN }}" >> $GITHUB_ENV
+
+      - name: Clear Maven Cache
+        run: mvn clean --batch-mode --update-snapshots
+      
+      - name: Build with Maven
+        run: mvn -B -DskipTests package --file pom.xml -s .github/settings.xml
