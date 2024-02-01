@@ -8,11 +8,11 @@
 	<artifactId>security</artifactId>
 	<version>0.0.5-SNAPSHOT</version>
 	<name>security</name>
-	<description>Crypto-Library</description>
+	<description>Crypto-security-lib</description>
 	
 	<distributionManagement>
 		<repository>
-			<id>Crypto-security-lib</id>
+			<id>github</id>
 			<url>https://maven.pkg.github.com/yashrockstar/Crypto-Library</url>
 		</repository>
 	</distributionManagement>
