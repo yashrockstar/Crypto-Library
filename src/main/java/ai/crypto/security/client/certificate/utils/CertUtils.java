@@ -37,7 +37,7 @@ public class CertUtils {
 	/**
 	 * Retrieves the private key from the <PrivateKeyFormat>.
 	 *
-	 * @return The private key .
+	 * @return The private key.
 	 */
 	public PrivateKey getPrivateKey(PrivateKeyFormat privateKeyFormat) {
 
