@@ -102,7 +102,7 @@ Add the following Maven repository to your project's `pom.xml`:
 Add the dependency for Crypto Security Lib:
 ```pom.xml
 <dependency>
-    <groupId>com.crypto</groupId>
+    <groupId>ai.crypto</groupId>
     <artifactId>security</artifactId>
     <version>VERSION</version>
 </dependency>
