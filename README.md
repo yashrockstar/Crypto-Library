@@ -89,7 +89,7 @@ Add the following Maven repository to your project's `pom.xml`:
 ```pom.xml
 <repositories>
     <repository>
-        <id>github</id>
+        <id>crypto.lib</id>
         <url>https://maven.pkg.github.com/yashrockstar/Crypto-security-lib</url>
         <snapshots>
             <enabled>true</enabled>
