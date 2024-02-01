@@ -14,9 +14,9 @@ jobs:
         run: sudo apt-get install xmlstarlet
       - name: Set Git credentials
         run: |
-          git config --global user.name $GIT_USERNAME
-          git config --global user.email $GIT_EMAIL
-          git config --global user.password $GIT_TOKEN
+          git config --global user.name "$GIT_USERNAME"
+          git config --global user.email "$GIT_EMAIL"
+          git config --global user.password "$GIT_TOKEN"
         env:
           GIT_USERNAME: ${{ secrets.BUILD_USER }}
           GIT_EMAIL: ${{ secrets.BUILD_EMAIL}}
