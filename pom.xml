@@ -8,12 +8,12 @@
 	<artifactId>security</artifactId>
 	<version>0.0.1-SNAPSHOT</version>
 	<name>security</name>
-	<description>crypto security lib</description>
+	<description>Crypto-Library</description>
 	
 	<distributionManagement>
 		<repository>
 			<id>github</id>
-			<url>https://maven.pkg.github.com/yashrockstar/crypto-security-lib</url>
+			<url>https://maven.pkg.github.com/yashrockstar/Crypto-Library</url>
 		</repository>
 	</distributionManagement>
 
@@ -49,7 +49,7 @@
 		</dependency>
 	</dependencies>
 	<build>
-		<finalName>crypto-security-lib</finalName>
+		<finalName>Crypto-Library</finalName>
 		<plugins>
 			<plugin>
 				<groupId>org.apache.maven.plugins</groupId>
