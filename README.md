@@ -107,6 +107,17 @@ Add the dependency for Crypto Security Lib:
     <version>VERSION</version>
 </dependency>
 ```
+### 3. Credentials in .m2/settings.xml
+In your Maven settings.xml file includes the server configuration for GitHub Packages with the correct PAT.
+```settings.xml
+<servers>
+  <server>
+    <id>crypto.lib</id>
+    <username>YOUR_GITHUB_USERNAME</username>
+    <password>YOUR_PAT</password>
+  </server>
+</servers>
+```
 
 ## Pre-requisites
 Before jumping to the `Initialization` part there is something which we have to keep in mind.
