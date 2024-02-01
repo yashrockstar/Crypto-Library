@@ -3,9 +3,7 @@ name: Maven Package
 on:
   push:
     branches:    
-      - 'develop'       # matches every branch containing a single 'feature/'
       - 'release'
-      - 'production'
 jobs:
   update-snapshot:
     runs-on: ubuntu-20.04
@@ -134,7 +132,7 @@ jobs:
           # Step 1: Get the SHA of the latest commit on the 'develop' branch
           SHA=$(curl -H "Authorization: token ${{ secrets.BUILD_TOKEN }}" \
           -H "Accept: application/vnd.github.v3+json" \
-          https://api.github.com/repos/yashrockstar/crypto-security-lib/git/refs/heads/${{ steps.extract_branch.outputs.branch }} | jq -r '.object.sha')
+          https://api.github.com/repos/yashrockstar/Crypto-Library/git/refs/heads/${{ steps.extract_branch.outputs.branch }} | jq -r '.object.sha')
 
           # Step 2: Create a new blob
           echo "{ \"content\": \"$BASE64_ENCODED_CONTENT\", \"encoding\": \"base64\" }" > temp_blob_data.json
@@ -142,20 +140,20 @@ jobs:
             -H "Authorization: token ${{ secrets.BUILD_TOKEN }}" \
             -H "Accept: application/vnd.github.v3+json" \
             --data @temp_blob_data.json \
-            https://api.github.com/repos/yashrockstar/crypto-security-lib/git/blobs | jq -r '.sha')
+            https://api.github.com/repos/yashrockstar/Crypto-Library/git/blobs | jq -r '.sha')
 
           # Step 3: Create a new tree
           TREE_DATA="{\"base_tree\":\"$SHA\",\"tree\":[{\"path\":\"pom.xml\",\"mode\":\"100644\",\"type\":\"blob\",\"sha\":\"$BLOB_SHA\"}]}"
           NEW_TREE_SHA=$(curl -X POST \
             -H "Authorization: token ${{ secrets.BUILD_TOKEN }}" \
             -H "Accept: application/vnd.github.v3+json" \
-            https://api.github.com/repos/yashrockstar/crypto-security-lib/git/trees -d "$TREE_DATA" | jq -r '.sha')
+            https://api.github.com/repos/yashrockstar/Crypto-Library/git/trees -d "$TREE_DATA" | jq -r '.sha')
 
           # Step 4: Create a new commit
           NEW_COMMIT_SHA=$(curl -X POST \
             -H "Authorization: token ${{ secrets.BUILD_TOKEN }}" \
             -H "Accept: application/vnd.github.v3+json" \
-            https://api.github.com/repos/yashrockstar/crypto-security-lib/git/commits \
+            https://api.github.com/repos/yashrockstar/Crypto-Library/git/commits \
             -d '{
               "message": "[skip-ci] Update project version to '${O_NEW_VERSION}'",
               "parents": ["'$SHA'"],
@@ -166,7 +164,7 @@ jobs:
           curl -X PATCH \
             -H "Authorization: token ${{ secrets.BUILD_TOKEN }}" \
             -H "Accept: application/vnd.github.v3+json" \
-            https://api.github.com/repos/yashrockstar/crypto-security-lib/git/refs/heads/${{ steps.extract_branch.outputs.branch }} \
+            https://api.github.com/repos/yashrockstar/Crypto-Library/git/refs/heads/${{ steps.extract_branch.outputs.branch }} \
             -d '{
               "sha": "'$NEW_COMMIT_SHA'",
               "force": false
