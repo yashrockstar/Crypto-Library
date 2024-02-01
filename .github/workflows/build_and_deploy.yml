@@ -197,17 +197,9 @@ jobs:
       working-directory: .
  
     - name: Build with Maven
-      run: mvn -B package --file pom.xml
+      run: mvn -B package --file pom.xml -s .github/settings.xml
 
-    - name: Set GITHUB_USERNAME and GITHUB_TOKEN as environment variables
-      run: |
-        echo "GITHUB_USERNAME=${{ secrets.BUILD_USER }}" >> $GITHUB_ENV
-        echo "GITHUB_TOKEN=${{ secrets.BUILD_TOKEN }}" >> $GITHUB_ENV
-    
     - name: Publish to GitHub Packages Apache Maven
-      run: mvn deploy
+      run: mvn deploy -s .github/settings.xml
       env:
-        GITHUB_USERNAME: ${{ secrets.BUILD_USER }}
         GITHUB_TOKEN: ${{ secrets.BUILD_TOKEN }}
-    
-    
